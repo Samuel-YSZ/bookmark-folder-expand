@@ -1,7 +1,7 @@
 {
-  "id": "expandable-folder-bookmarks",
-  "name": "Expandable Folder Bookmarks",
-  "version": "0.1.4",
+  "id": "bookmark-folder-expand",
+  "name": "Bookmark Folder Expand",
+  "version": "0.1.5",
   "minAppVersion": "1.13.0",
   "description": "Expand bookmarked folders directly inside the Bookmarks pane.",
   "author": "Codex",
