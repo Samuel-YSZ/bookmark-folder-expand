@@ -1,0 +1,19 @@
+{
+  "name": "expandable-folder-bookmarks",
+  "version": "0.1.3",
+  "description": "Expand bookmarked folders directly inside Obsidian's Bookmarks pane.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+  },
+  "author": "Codex",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "^1.13.0",
+    "tslib": "^2.4.0",
+    "typescript": "^5.8.0"
+  }
+}
