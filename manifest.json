@@ -1,10 +1,10 @@
 {
   "id": "expandable-folder-bookmarks",
   "name": "Expandable Folder Bookmarks",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "minAppVersion": "1.13.0",
-  "description": "Expand bookmarked folders directly inside Obsidian's Bookmarks pane.",
+  "description": "Expand bookmarked folders directly inside the Bookmarks pane.",
   "author": "Codex",
-  "authorUrl": "https://github.com/Samuel-YSZ/expandable-folder-bookmarks",
+  "authorUrl": "https://github.com/Samuel-YSZ",
   "isDesktopOnly": false
 }
