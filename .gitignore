@@ -1,6 +1,9 @@
 node_modules/
 *.js.map
 .DS_Store
+main.js
+dist/
+CLAUDE-HANDOFF.md
 backup-*/
 bookmarks.json
 community-plugins.json
