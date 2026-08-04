@@ -1,4 +1,4 @@
-# Bookmark Folder Expand
+# Expandable Folder Bookmarks
 
 Expand bookmarked folders directly inside Obsidian's Bookmarks pane, without jumping back to the file explorer.
 
