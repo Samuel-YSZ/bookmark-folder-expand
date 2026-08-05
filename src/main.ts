@@ -342,7 +342,7 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
         hint = originalIcon;
       }
       if (!hint) {
-        hint = createEl("div", { cls: "tree-item-icon", parent: row, prepend: true });
+        hint = createDiv({ cls: "tree-item-icon", parent: row, prepend: true });
       }
       hint.classList.add("collapse-icon", "cnb-expand-hint");
 
@@ -416,13 +416,13 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
     wrapper.querySelector(":scope > .cnb-folder-children")?.remove();
     const folder = this.app.vault.getAbstractFileByPath(folderPath);
 
-    const holder = createEl("div", {
+    const holder = createDiv({
       cls: "tree-item-children nav-folder-children cnb-folder-children",
       parent: wrapper,
     });
 
     if (!(folder instanceof TFolder)) {
-      createEl("div", {
+      createDiv({
         cls: "cnb-empty-folder",
         text: "文件夹不存在",
         parent: holder,
@@ -467,27 +467,27 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
   }
 
   renderInlineFolder(container: HTMLElement, folder: TFolder): void {
-    const wrapper = createEl("div", {
+    const wrapper = createDiv({
       cls: "tree-item nav-folder cnb-tree-item",
       parent: container,
     });
     wrapper.dataset.folderPath = folder.path;
 
-    const row = createEl("div", {
+    const row = createDiv({
       cls: "tree-item-self nav-folder-title is-clickable mod-collapsible cnb-inline-folder-row",
       parent: wrapper,
     });
 
-    const collapse = createEl("div", { cls: "tree-item-icon collapse-icon", parent: row });
+    const collapse = createDiv({ cls: "tree-item-icon collapse-icon", parent: row });
     setIcon(collapse, "right-triangle");
 
-    const title = createEl("div", {
+    const title = createDiv({
       cls: "tree-item-inner nav-folder-title-content",
       text: folder.name,
       parent: row,
     });
 
-    const nested = createEl("div", {
+    const nested = createDiv({
       cls: "tree-item-children nav-folder-children cnb-inline-children",
       parent: wrapper,
     });
@@ -531,19 +531,19 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
   }
 
   renderInlineFile(container: HTMLElement, file: TFile): void {
-    const wrapper = createEl("div", {
+    const wrapper = createDiv({
       cls: "tree-item nav-file cnb-tree-item",
       parent: container,
     });
 
-    const row = createEl("div", {
+    const row = createDiv({
       cls: "tree-item-self nav-file-title is-clickable cnb-inline-file-row",
       parent: wrapper,
     });
     row.dataset.filePath = file.path;
     row.classList.toggle("is-active", this.app.workspace.getActiveFile()?.path === file.path);
 
-    const title = createEl("div", {
+    const title = createDiv({
       cls: "tree-item-inner nav-file-title-content",
       text: file.basename,
       parent: row,
