@@ -93,7 +93,7 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
     }
 
     this.addCommand({
-      id: "refresh-expandable-folder-bookmarks",
+      id: "refresh-folders",
       name: "刷新可展开的文件夹收藏",
       callback: () => {
         this.refreshBookmarkViews();

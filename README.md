@@ -40,3 +40,7 @@ Expand bookmarked folders directly inside Obsidian's Bookmarks pane, without jum
 ## Privacy
 
 This plugin makes no network requests and has no external dependencies at runtime. It operates entirely within your local Obsidian vault.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
