@@ -1,6 +1,6 @@
 {
   "name": "bookmark-folder-expand",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Expand bookmarked folders directly inside Obsidian's Bookmarks pane.",
   "main": "main.js",
   "scripts": {
