@@ -33,8 +33,18 @@ interface BookmarksViewLike {
 
 interface FileExplorerViewLike {
   getSortedFolderItems?(folder: TFolder): Array<{ file?: unknown }>;
+  requestSort?(): void;
   attachDropHandler?(folder: TFolder, row: HTMLElement): void;
   revealInFolder?(file: TFolder | TFile): void;
+}
+
+interface ExplorerSortPluginLike {
+  data?: {
+    enabled?: boolean;
+    orders?: Record<string, unknown>;
+  };
+  patchFileExplorer?(): boolean;
+  requestExplorerSort?(): void;
 }
 
 interface DragManagerLike {
@@ -47,6 +57,9 @@ interface DragManagerLike {
 interface AppInternalsLike {
   internalPlugins?: {
     getEnabledPluginById?(id: string): unknown;
+  };
+  plugins?: {
+    getPlugin?(id: string): unknown;
   };
   dragManager?: DragManagerLike;
 }
@@ -61,6 +74,12 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
   suppressBookmarkObserver = false;
   observerReleaseTimer: number | null = null;
   stateSaveTimer: number | null = null;
+  explorerSortSignature = "";
+  fileExplorerPatch: {
+    view: FileExplorerViewLike;
+    originalDescriptor?: PropertyDescriptor;
+    wrapper: (folder: TFolder) => Array<{ file?: unknown }>;
+  } | null = null;
 
   async onload(): Promise<void> {
     const saved = (await this.loadData()) as BookmarkFolderExpandState | null;
@@ -68,8 +87,12 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
     this.expandedFolders = new Set(saved?.expandedFolders ?? []);
     this.boundContainers = new WeakSet();
     this.pendingContentPaths = new Set();
+    this.explorerSortSignature = this.getExplorerSortSignature();
+
+    this.registerInterval(window.setInterval(() => this.checkExplorerSortChanges(), 750));
 
     this.app.workspace.onLayoutReady(() => {
+      this.ensureExplorerSortFileView();
       this.refreshBookmarkViews();
       this.registerEvent(this.app.vault.on("create", (file) => this.queueContentRefresh(file.path)));
       this.registerEvent(this.app.vault.on("delete", (file) => this.queueContentRefresh(file.path)));
@@ -80,7 +103,10 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
         })
       );
     });
-    this.registerEvent(this.app.workspace.on("layout-change", () => this.queueRefresh()));
+    this.registerEvent(this.app.workspace.on("layout-change", () => {
+      this.ensureExplorerSortFileView();
+      this.queueRefresh();
+    }));
     this.registerEvent(this.app.workspace.on("file-open", () => this.updateActiveFiles()));
 
     const bookmarks = this.getBookmarksPlugin();
@@ -104,6 +130,7 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
   }
 
   onunload(): void {
+    this.restoreFileExplorerSortPatch();
     if (this.refreshTimer) window.clearTimeout(this.refreshTimer);
     if (this.contentRefreshTimer) window.clearTimeout(this.contentRefreshTimer);
     if (this.observerReleaseTimer) window.clearTimeout(this.observerReleaseTimer);
@@ -190,6 +217,110 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
 
   getFileExplorerView(): FileExplorerViewLike | null {
     return (this.app.workspace.getLeavesOfType("file-explorer")[0]?.view as unknown as FileExplorerViewLike) ?? null;
+  }
+
+  getExplorerSortPlugin(): ExplorerSortPluginLike | null {
+    const app = this.app as typeof this.app & AppInternalsLike;
+    return (app.plugins?.getPlugin?.("explorer-sort") as ExplorerSortPluginLike) ?? null;
+  }
+
+  getExplorerSortOrder(folder: TFolder): string[] | null {
+    const data = this.getExplorerSortPlugin()?.data;
+    if (data?.enabled !== true) return null;
+
+    const order = data.orders?.[folder.path];
+    if (!Array.isArray(order)) return null;
+
+    const names = order.filter((name): name is string => typeof name === "string");
+    return names.length > 0 ? names : null;
+  }
+
+  getExplorerSortSignature(): string {
+    const data = this.getExplorerSortPlugin()?.data;
+    if (!data) return "unavailable";
+
+    try {
+      return JSON.stringify([data.enabled === true, data.orders ?? {}]);
+    } catch {
+      return data.enabled === true ? "enabled" : "disabled";
+    }
+  }
+
+  ensureExplorerSortFileView(): void {
+    const plugin = this.getExplorerSortPlugin();
+    if (!plugin) return;
+
+    try {
+      plugin.patchFileExplorer?.();
+      this.patchFileExplorerSort();
+      plugin.requestExplorerSort?.();
+      this.getFileExplorerView()?.requestSort?.();
+    } catch (error) {
+      console.warn("[Bookmark Folder Expand] Unable to initialize Explorer Sort compatibility", error);
+    }
+  }
+
+  patchFileExplorerSort(): void {
+    const view = this.getFileExplorerView();
+    if (!view || typeof view.getSortedFolderItems !== "function") return;
+    if (this.fileExplorerPatch?.view === view && view.getSortedFolderItems === this.fileExplorerPatch.wrapper) return;
+
+    this.restoreFileExplorerSortPatch();
+
+    const original = view.getSortedFolderItems;
+    const originalDescriptor = Object.getOwnPropertyDescriptor(view, "getSortedFolderItems");
+    const wrapper = (folder: TFolder): Array<{ file?: unknown }> => {
+      const items = original.call(view, folder);
+      const order = this.getExplorerSortOrder(folder);
+      if (!order || !Array.isArray(items)) return items;
+
+      const positions = new Map(order.map((name, index) => [name, index]));
+      const known: Array<{ file?: unknown }> = [];
+      const unknown: Array<{ file?: unknown }> = [];
+
+      for (const item of items) {
+        const file = item?.file as { name?: unknown } | undefined;
+        const name = typeof file?.name === "string" ? file.name : "";
+        (positions.has(name) ? known : unknown).push(item);
+      }
+
+      known.sort((a, b) => {
+        const aName = (a.file as { name?: string } | undefined)?.name ?? "";
+        const bName = (b.file as { name?: string } | undefined)?.name ?? "";
+        return (positions.get(aName) ?? 0) - (positions.get(bName) ?? 0);
+      });
+      return known.concat(unknown);
+    };
+
+    Object.defineProperty(view, "getSortedFolderItems", {
+      configurable: true,
+      writable: true,
+      value: wrapper,
+    });
+    this.fileExplorerPatch = { view, originalDescriptor, wrapper };
+  }
+
+  restoreFileExplorerSortPatch(): void {
+    const patch = this.fileExplorerPatch;
+    if (!patch) return;
+    this.fileExplorerPatch = null;
+
+    if (patch.view.getSortedFolderItems !== patch.wrapper) return;
+    if (patch.originalDescriptor) {
+      Object.defineProperty(patch.view, "getSortedFolderItems", patch.originalDescriptor);
+    } else {
+      delete patch.view.getSortedFolderItems;
+    }
+  }
+
+  checkExplorerSortChanges(): void {
+    const signature = this.getExplorerSortSignature();
+    if (signature === this.explorerSortSignature) return;
+
+    this.explorerSortSignature = signature;
+    this.ensureExplorerSortFileView();
+    this.queueRefresh();
+    this.queueContentRefresh();
   }
 
   markInternalMutation(): void {
@@ -434,6 +565,25 @@ export default class ExpandableFolderBookmarksPlugin extends Plugin {
   }
 
   getSortedChildren(folder: TFolder): (TFolder | TFile)[] {
+    const customOrder = this.getExplorerSortOrder(folder);
+    if (customOrder) {
+      const positions = new Map(customOrder.map((name, index) => [name, index]));
+      const known: (TFolder | TFile)[] = [];
+      const unknown: (TFolder | TFile)[] = [];
+
+      for (const child of folder.children as (TFolder | TFile)[]) {
+        (positions.has(child.name) ? known : unknown).push(child);
+      }
+
+      known.sort((a, b) => (positions.get(a.name) ?? 0) - (positions.get(b.name) ?? 0));
+      unknown.sort((a, b) => {
+        const folderDelta = Number(b instanceof TFolder) - Number(a instanceof TFolder);
+        if (folderDelta) return folderDelta;
+        return a.name.localeCompare(b.name, "zh-CN", { numeric: true, sensitivity: "base" });
+      });
+      return known.concat(unknown);
+    }
+
     const explorerView = this.getFileExplorerView();
 
     if (typeof explorerView?.getSortedFolderItems === "function") {

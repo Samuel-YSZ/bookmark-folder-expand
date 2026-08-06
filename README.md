@@ -8,7 +8,7 @@ Expand bookmarked folders directly inside Obsidian's Bookmarks pane, without jum
 - Recursively expand subfolders
 - Click files to open them; Ctrl/Cmd+click or middle-click to open in a new tab
 - Active file highlighting inside expanded folders
-- Uses the same ordering as Obsidian's File Explorer, including sorting supplied by plugins such as Explorer Sort
+- Uses the same ordering as Obsidian's File Explorer, including automatic startup and rule-change synchronization with Explorer Sort
 - Uses the native Bookmarks item context menu for inline files and folders, including `bookmarks:bookmarks-menu` extensions
 - Drag inline files or folders with Obsidian's native drag manager, just like items in the File Explorer
 - Drop files and folders onto an expanded folder to move/import them with Obsidian's native drop handling
